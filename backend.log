@@ -1,0 +1,29 @@
+
+Training matches: 61562
+Testing matches: 4020
+Rank_Diff 0.3517
+Pts_Diff 0.2231
+Form_Diff_10 0.1066
+Surface_Form_Diff_10 0.0861
+Form_Diff_5 0.0322
+P1_Surface_10 0.0306
+P2_Last_10 0.0275
+P2_Surface_10 0.026
+Surface_Form_Diff_5 0.0257
+P1_Last_10 0.0216
+P2_Surface_5 0.0135
+P1_Surface_5 0.0121
+P2_Last_5 0.0105
+P1_Last_5 0.0093
+Round_Code 0.0054
+H2H_Diff 0.0052
+H2H_P1 0.0049
+H2H_P2 0.0048
+Surface_Code 0.0034
+Accuracy: 0.6460199004975125
+Precision: 0.6450815620365793
+ * Serving Flask app 'app'
+ * Debug mode: on
+Address already in use
+Port 5000 is in use by another program. Either identify and stop that program, or start the server with a different port.
+On macOS, try searching for and disabling 'AirPlay Receiver' in System Settings.
