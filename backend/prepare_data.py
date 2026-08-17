@@ -75,7 +75,11 @@ def add_recent_form_features(df):
 
 
 def prepareData():
-    df = pd.read_csv("/Users/henryriordan/vscode/tennis-predictor/data/atp_tennis.csv")
+    import os
+
+    default_data = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "atp_tennis.csv"))
+    data_path = os.environ.get("DATA_PATH", default_data)
+    df = pd.read_csv(data_path)
     df["Date"] = pd.to_datetime(df["Date"])
     df = df.sort_values("Date").reset_index(drop=True)
 

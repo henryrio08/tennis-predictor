@@ -4,6 +4,21 @@ ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKEND_DIR="$ROOT_DIR/backend"
 FRONTEND_DIR="$ROOT_DIR/frontend"
 
+# Data files
+DATA_FILE="$ROOT_DIR/data/atp_tennis.csv"
+SAMPLE_FILE="$ROOT_DIR/data/sample_atp_tennis.csv"
+
+if [ -f "$DATA_FILE" ]; then
+  echo "Using dataset: $DATA_FILE"
+elif [ -f "$SAMPLE_FILE" ]; then
+  echo "Dataset not found. Falling back to sample dataset: $SAMPLE_FILE"
+  export DATA_PATH="$SAMPLE_FILE"
+else
+  echo "Warning: no dataset found at $DATA_FILE and no sample available."
+  echo "Place your full dataset at $DATA_FILE or create $SAMPLE_FILE, or set DATA_PATH to a CSV path."
+  exit 1
+fi
+
 if ! command -v python3 >/dev/null 2>&1; then
   echo "Python 3 is required but not installed."
   exit 1

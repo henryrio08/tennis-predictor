@@ -62,6 +62,14 @@ The script will:
 3. install frontend dependencies if needed
 4. start the React dev server
 
+Note: for convenience the repository includes a small demo dataset at `data/sample_atp_tennis.csv`. If you do not have the full `data/atp_tennis.csv` file, the backend can be run using this sample by setting the `DATA_PATH` environment variable to `data/sample_atp_tennis.csv`, or by copying `sample_atp_tennis.csv` to `data/atp_tennis.csv`.
+
+Run script behavior: `run.sh` checks for `data/atp_tennis.csv`; if it's missing and `data/sample_atp_tennis.csv` exists, `run.sh` will automatically use the sample by setting `DATA_PATH`. If neither file exists, `run.sh` will exit and explain how to provide a dataset. To copy the sample into place for an easy demo, run:
+
+```bash
+cp data/sample_atp_tennis.csv data/atp_tennis.csv
+```
+
 ## Manual setup
 
 ### Backend

@@ -2,9 +2,17 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from model import model
 import pandas as pd
+import os
+import pathlib
 
+# Allow overriding the data path via the DATA_PATH environment variable.
+# Default to the repository-relative `data/atp_tennis.csv` file.
+DEFAULT_DATA = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "data", "atp_tennis.csv")
+)
+DATA_PATH = os.environ.get("DATA_PATH", DEFAULT_DATA)
 
-df = pd.read_csv("/Users/henryriordan/vscode/tennis-predictor/data/atp_tennis.csv")
+df = pd.read_csv(DATA_PATH)
 df["Date"] = pd.to_datetime(df["Date"])
 df = df.sort_values("Date").reset_index(drop=True)
 
