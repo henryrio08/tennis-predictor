@@ -1,6 +1,6 @@
 # Tennis Predictor
 
-A full-stack tennis match prediction app that uses ATP match history, engineered player form features, and a trained machine learning model to predict the likely winner of a match.
+A full-stack tennis match prediction app that uses ATP match history, calculated player  features, and a trained machine learning model to predict the likely winner of a match.
 
 ## Overview
 
