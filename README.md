@@ -41,15 +41,13 @@ Requirements: Python 3, Node.js/npm, and the ATP dataset.
 From the repository root:
 
 ```bash
-python3 -m pip install -r requirements.txt
-cd frontend && npm ci && cd ..
 chmod +x run.sh
 ./run.sh
 ```
 
-Open http://localhost:5173. The API listens on http://127.0.0.1:5000.
+The launcher creates a local `.venv`, installs or updates Python dependencies only when `requirements.txt` changes, installs frontend dependencies if needed, and starts both servers. Open http://localhost:5173. The API listens on http://127.0.0.1:5000.
 
-The launcher checks for Python, npm, and a dataset. It uses the main CSV when available and falls back to the sample CSV otherwise. The sample contains only a few rows; it exists to exercise the app and should not be used to claim model accuracy.
+The launcher uses the main CSV when available and falls back to the sample CSV otherwise. The sample contains only a few rows; it exists to exercise the app and should not be used to claim model accuracy.
 
 ### Manual setup
 
@@ -111,7 +109,10 @@ A lightweight readiness endpoint is available at `GET /health`. It confirms the 
 From the repository root, run:
 
 ```bash
-python -m pip install -r requirements.txt
+# If you used ./run.sh:
+.venv/bin/python -m backend.evaluate_model
+
+# Or if you installed requirements into your active Python environment:
 python -m backend.evaluate_model
 ```
 
@@ -132,11 +133,15 @@ Do not report a metric without also recording the dataset version/size and test 
 From the repository root:
 
 ```bash
+# If you used ./run.sh:
+.venv/bin/python -m unittest discover -s tests -v
+
+# Or use the Python environment where requirements.txt is installed:
 python -m unittest discover -s tests -v
 python -m py_compile backend/app.py backend/model.py backend/prepare_data.py backend/model_tuner.py backend/evaluate_model.py
 ```
 
-GitHub Actions runs the unit tests, Python compile checks, and frontend production build on pushes and pull requests to `main`.
+GitHub Actions runs the unit tests, Python compile checks, frontend lint, and Vite production build on pushes and pull requests to `main`.
 
 ## Limitations and next steps
 
