@@ -16,63 +16,88 @@ def add_recent_form_features(df):
     h2h_counts = {}
 
     df = df.copy()
+    feature_columns = [
+        "P1_Last_5", "P2_Last_5", "P1_Last_10", "P2_Last_10",
+        "Form_Diff_5", "Form_Diff_10",
+        "P1_Surface_5", "P2_Surface_5", "P1_Surface_10", "P2_Surface_10",
+        "Surface_Form_Diff_5", "Surface_Form_Diff_10",
+        "H2H_P1", "H2H_P2", "H2H_Diff",
+    ]
+    for column in feature_columns:
+        df[column] = 0.0
 
-    for idx, row in df.iterrows():
-        player_1 = row["Player_1"]
-        player_2 = row["Player_2"]
-        surface = row["Surface"]
+    # A dataset often has many matches on one date. Without match start times,
+    # results from any match on that date must not leak into another match's features.
+    if "Date" in df.columns:
+        date_groups = [group.index.tolist() for _, group in df.groupby("Date", sort=False, dropna=False)]
+    else:
+        date_groups = [[idx] for idx in df.index]
 
-        p1_history = history.setdefault(player_1, [])
-        p2_history = history.setdefault(player_2, [])
+    for indices in date_groups:
+        completed_matches = []
 
-        p1_surface_history = surface_history.setdefault((player_1, surface), [])
-        p2_surface_history = surface_history.setdefault((player_2, surface), [])
+        # Compute every feature for the date using history from earlier dates only.
+        for idx in indices:
+            row = df.loc[idx]
+            player_1 = row["Player_1"]
+            player_2 = row["Player_2"]
+            surface = row["Surface"]
 
-        p1_last_5 = rolling_win_rate(p1_history, 5)
-        p2_last_5 = rolling_win_rate(p2_history, 5)
-        p1_last_10 = rolling_win_rate(p1_history, 10)
-        p2_last_10 = rolling_win_rate(p2_history, 10)
+            p1_history = history.setdefault(player_1, [])
+            p2_history = history.setdefault(player_2, [])
+            p1_surface_history = surface_history.setdefault((player_1, surface), [])
+            p2_surface_history = surface_history.setdefault((player_2, surface), [])
 
-        p1_surface_5 = rolling_win_rate(p1_surface_history, 5)
-        p2_surface_5 = rolling_win_rate(p2_surface_history, 5)
-        p1_surface_10 = rolling_win_rate(p1_surface_history, 10)
-        p2_surface_10 = rolling_win_rate(p2_surface_history, 10)
+            p1_last_5 = rolling_win_rate(p1_history, 5)
+            p2_last_5 = rolling_win_rate(p2_history, 5)
+            p1_last_10 = rolling_win_rate(p1_history, 10)
+            p2_last_10 = rolling_win_rate(p2_history, 10)
+            p1_surface_5 = rolling_win_rate(p1_surface_history, 5)
+            p2_surface_5 = rolling_win_rate(p2_surface_history, 5)
+            p1_surface_10 = rolling_win_rate(p1_surface_history, 10)
+            p2_surface_10 = rolling_win_rate(p2_surface_history, 10)
 
-        pair = tuple(sorted((player_1, player_2)))
-        head_to_head = h2h_counts.setdefault(pair, {})
+            pair = tuple(sorted((player_1, player_2)))
+            pair_history = h2h_counts.setdefault(pair, {})
+            p1_h2h_wins = pair_history.get(player_1, 0)
+            p2_h2h_wins = pair_history.get(player_2, 0)
 
-        df.at[idx, "P1_Last_5"] = p1_last_5
-        df.at[idx, "P2_Last_5"] = p2_last_5
-        df.at[idx, "P1_Last_10"] = p1_last_10
-        df.at[idx, "P2_Last_10"] = p2_last_10
-        df.at[idx, "Form_Diff_5"] = p1_last_5 - p2_last_5
-        df.at[idx, "Form_Diff_10"] = p1_last_10 - p2_last_10
+            values = {
+                "P1_Last_5": p1_last_5,
+                "P2_Last_5": p2_last_5,
+                "P1_Last_10": p1_last_10,
+                "P2_Last_10": p2_last_10,
+                "Form_Diff_5": p1_last_5 - p2_last_5,
+                "Form_Diff_10": p1_last_10 - p2_last_10,
+                "P1_Surface_5": p1_surface_5,
+                "P2_Surface_5": p2_surface_5,
+                "P1_Surface_10": p1_surface_10,
+                "P2_Surface_10": p2_surface_10,
+                "Surface_Form_Diff_5": p1_surface_5 - p2_surface_5,
+                "Surface_Form_Diff_10": p1_surface_10 - p2_surface_10,
+                "H2H_P1": p1_h2h_wins,
+                "H2H_P2": p2_h2h_wins,
+                "H2H_Diff": p1_h2h_wins - p2_h2h_wins,
+            }
+            for column, value in values.items():
+                df.at[idx, column] = value
 
-        df.at[idx, "P1_Surface_5"] = p1_surface_5
-        df.at[idx, "P2_Surface_5"] = p2_surface_5
-        df.at[idx, "P1_Surface_10"] = p1_surface_10
-        df.at[idx, "P2_Surface_10"] = p2_surface_10
-        df.at[idx, "Surface_Form_Diff_5"] = p1_surface_5 - p2_surface_5
-        df.at[idx, "Surface_Form_Diff_10"] = p1_surface_10 - p2_surface_10
+            p1_won = int(row["Winner"] == player_1)
+            p2_won = int(row["Winner"] == player_2)
+            completed_matches.append(
+                (player_1, player_2, surface, pair, p1_won, p2_won)
+            )
 
-        # Store wins under each player's identity. Match order can reverse,
-        # so counters named only P1/P2 would mix up the players' records.
-        p1_h2h_wins = head_to_head.get(player_1, 0)
-        p2_h2h_wins = head_to_head.get(player_2, 0)
-        df.at[idx, "H2H_P1"] = p1_h2h_wins
-        df.at[idx, "H2H_P2"] = p2_h2h_wins
-        df.at[idx, "H2H_Diff"] = p1_h2h_wins - p2_h2h_wins
+        # Make results available only after every match on the date was featured.
+        for player_1, player_2, surface, pair, p1_won, p2_won in completed_matches:
+            history[player_1].append(p1_won)
+            history[player_2].append(p2_won)
+            surface_history[(player_1, surface)].append(p1_won)
+            surface_history[(player_2, surface)].append(p2_won)
 
-        player_1_won = int(row["Winner"] == player_1)
-        player_2_won = int(row["Winner"] == player_2)
-
-        p1_history.append(player_1_won)
-        p2_history.append(player_2_won)
-        p1_surface_history.append(player_1_won)
-        p2_surface_history.append(player_2_won)
-
-        head_to_head[player_1] = p1_h2h_wins + player_1_won
-        head_to_head[player_2] = p2_h2h_wins + player_2_won
+            pair_history = h2h_counts[pair]
+            pair_history[player_1] = pair_history.get(player_1, 0) + p1_won
+            pair_history[player_2] = pair_history.get(player_2, 0) + p2_won
 
     return df
 
@@ -83,8 +108,8 @@ def prepareData():
     )
     data_path = os.environ.get("DATA_PATH", default_data)
     df = pd.read_csv(data_path)
-    df["Date"] = pd.to_datetime(df["Date"])
-    df = df.sort_values("Date", kind="stable").reset_index(drop=True)
+    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+    df = df.dropna(subset=["Date"]).sort_values("Date", kind="stable").reset_index(drop=True)
 
     df["Player_1_Wins"] = (df["Winner"] == df["Player_1"]).astype(int)
     df["Rank_Diff"] = df["Rank_2"] - df["Rank_1"]
@@ -115,25 +140,12 @@ def prepareData():
     test = df[df["Date"] >= split_date]
 
     features = [
-        "Rank_Diff",
-        "Pts_Diff",
-        "Surface_Code",
-        "Round_Code",
-        "P1_Last_5",
-        "P2_Last_5",
-        "P1_Last_10",
-        "P2_Last_10",
-        "Form_Diff_5",
-        "Form_Diff_10",
-        "P1_Surface_5",
-        "P2_Surface_5",
-        "P1_Surface_10",
-        "P2_Surface_10",
-        "Surface_Form_Diff_5",
-        "Surface_Form_Diff_10",
-        "H2H_P1",
-        "H2H_P2",
-        "H2H_Diff",
+        "Rank_Diff", "Pts_Diff", "Surface_Code", "Round_Code",
+        "P1_Last_5", "P2_Last_5", "P1_Last_10", "P2_Last_10",
+        "Form_Diff_5", "Form_Diff_10",
+        "P1_Surface_5", "P2_Surface_5", "P1_Surface_10", "P2_Surface_10",
+        "Surface_Form_Diff_5", "Surface_Form_Diff_10",
+        "H2H_P1", "H2H_P2", "H2H_Diff",
     ]
 
     X_train = train[features]
