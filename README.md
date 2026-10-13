@@ -27,8 +27,7 @@ The app predicts who is more likely to win based on factors such as:
 - `frontend/` — React UI
 - `data/` — ATP tennis dataset used for training and prediction
 - `run.sh` — one-click startup script for the full app
-- `backend.log` — backend output log
-- `frontend.log` — frontend output log
+- `tests/` — regression tests for feature engineering
 
 ## Tech stack
 
@@ -62,13 +61,7 @@ The script will:
 3. install frontend dependencies if needed
 4. start the React dev server
 
-Note: for convenience the repository includes a small demo dataset at `data/sample_atp_tennis.csv`. If you do not have the full `data/atp_tennis.csv` file, the backend can be run using this sample by setting the `DATA_PATH` environment variable to `data/sample_atp_tennis.csv`, or by copying `sample_atp_tennis.csv` to `data/atp_tennis.csv`.
-
-Run script behavior: `run.sh` checks for `data/atp_tennis.csv`; if it's missing and `data/sample_atp_tennis.csv` exists, `run.sh` will automatically use the sample by setting `DATA_PATH`. If neither file exists, `run.sh` will exit and explain how to provide a dataset. To copy the sample into place for an easy demo, run:
-
-```bash
-cp data/sample_atp_tennis.csv data/atp_tennis.csv
-```
+The repository includes the main dataset at `data/atp_tennis.csv`. If you use a different CSV, point the app at it with `DATA_PATH=/path/to/your.csv`. The startup script also supports an optional `data/sample_atp_tennis.csv` file if you add one locally; that sample file is not currently included in the repository.
 
 ## Manual setup
 
@@ -109,7 +102,8 @@ curl -X POST http://127.0.0.1:5000/predict \
     "rank1": 1,
     "rank2": 2,
     "pts1": 12000,
-    "pts2": 9800
+    "pts2": 9800,
+    "match_date": "2026-10-20"
   }'
 ```
 
@@ -123,15 +117,26 @@ Example response:
 
 ## Model notes
 
-The project uses a time-based train/test split so the model is evaluated on more recent data, which is a more realistic test of predictive power than random shuffling.
+The project uses a chronological train/test split: matches before 2024-01-01 are used for training, and matches on or after that date are held out for testing. Recent-form and head-to-head features are built from earlier dates only; matches on the same date are grouped so their results do not leak into one another's features.
 
-The current version performs around the mid-60% range on the out-of-time test split, which is reasonable for a tennis prediction demo but not strong enough to be considered a real betting or sports analytics product.
+Run the model script to calculate accuracy on the current dataset. Recalculate this metric whenever the data or feature pipeline changes instead of treating a previous score as guaranteed.
 
 ## Important limitations
 
 This is a portfolio/demo project, not a production-grade betting system.
 
 - it is trained on historical ATP data only
+- prediction history is limited to matches before the requested `match_date` (defaults to today's date)
 - it does not include live injury, fatigue, weather, or form context outside the dataset
 - the model is a simple feature-based classifier rather than a full sports analytics pipeline
 - predictions should be treated as educational/experimental, not investment advice
+
+## Tests
+
+From the repository root, run:
+
+```bash
+python -m pip install -r requirements.txt
+python -m unittest discover -s tests -v
+python -m py_compile backend/app.py backend/model.py backend/prepare_data.py backend/model_tuner.py
+```

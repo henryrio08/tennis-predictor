@@ -23,6 +23,7 @@ function App() {
     rank2: 2,
     pts1: 12000,
     pts2: 9800,
+    match_date: new Date().toISOString().slice(0, 10),
   });
   const [prediction, setPrediction] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -96,6 +97,11 @@ function App() {
               <option key={player} value={player}>{player}</option>
             ))}
           </select>
+        </label>
+
+        <label>
+          Match date
+          <input type="date" name="match_date" value={form.match_date} onChange={handleChange} style={{ width: '100%', padding: 8 }} />
         </label>
 
         <label>

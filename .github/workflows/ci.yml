@@ -23,14 +23,17 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
+      - name: Run Python unit tests
+        run: python -m unittest discover -s tests -v
+
       - name: Lint / compile Python
         run: |
-          python -m py_compile backend/app.py backend/model.py backend/prepare_data.py || true
+          python -m py_compile backend/app.py backend/model.py backend/prepare_data.py backend/model_tuner.py
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
 
       - name: Install frontend deps and build
         working-directory: frontend
