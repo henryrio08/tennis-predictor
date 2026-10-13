@@ -1,35 +1,38 @@
+from functools import lru_cache
+
 from sklearn.ensemble import RandomForestClassifier
-from prepare_data import prepareData
-from sklearn.metrics import accuracy_score, precision_score
+
+try:
+    from .prepare_data import prepareData
+except ImportError:  # Support running this file from the backend directory.
+    from prepare_data import prepareData
 
 
-def train_model():
-    X_train, X_test, y_train, y_test = prepareData()
-
-    model = RandomForestClassifier(
-        n_estimators=500,
+def build_model():
+    """Create an unfitted classifier with reproducible settings."""
+    return RandomForestClassifier(
+        n_estimators=300,
         random_state=42,
         max_depth=8,
         min_samples_leaf=5,
-        max_features='sqrt'
+        max_features="sqrt",
     )
-    model.fit(X_train, y_train)
-
-    predictions = model.predict(X_test)
-    accuracy = accuracy_score(y_test, predictions)
-    precision = precision_score(y_test, predictions)
-    feature_importances = model.feature_importances_
-
-    for feature, importance in sorted(zip(X_train.columns, feature_importances), key=lambda x: x[1], reverse=True):
-        print(feature, round(importance, 4))
-    print("Accuracy:", accuracy)
-    print("Precision:", precision)
-
-    return model
 
 
-model = train_model()
+def train_model():
+    """Fit on the chronological training split and return the fitted estimator."""
+    X_train, _X_test, y_train, _y_test = prepareData()
+    estimator = build_model()
+    estimator.fit(X_train, y_train)
+    return estimator
+
+
+@lru_cache(maxsize=1)
+def get_model():
+    """Train once per backend process, on the first prediction request."""
+    return train_model()
 
 
 if __name__ == "__main__":
-    print("Model is trained and ready.")
+    trained_model = get_model()
+    print(f"Model trained on {trained_model.n_features_in_} features.")

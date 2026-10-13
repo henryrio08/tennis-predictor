@@ -1,95 +1,84 @@
 # Tennis Predictor
 
-A full-stack tennis match prediction app that uses ATP match history, calculated player  features, and a trained machine learning model to predict the likely winner of a match.
+A full-stack tennis match prediction demo that combines a React interface, a Flask API, and a scikit-learn random forest to estimate which of two ATP players is more likely to win.
 
-## Overview
+## What it uses
 
-This project combines:
+The model receives 19 features:
 
-- Python + Flask for the backend API
-- scikit-learn for the prediction model
-- React + Vite for the frontend interface
-- ATP tennis data for historical match features
+- ranking difference and ranking-points difference
+- encoded court surface and tournament round
+- each player's win rate over their previous 5 and 10 matches
+- differences between the players' recent win rates
+- each player's recent record on the selected surface and the corresponding differences
+- head-to-head wins for each player and the difference
 
-The app predicts who is more likely to win based on factors such as:
-
-- player ranking difference
-- ranking points difference
-- surface type
-- match round
-- recent form over the last 5 and 10 matches
-- surface-specific recent form
-- head-to-head history
-
-## Project structure
-
-- `backend/` — Flask API, feature engineering, and model logic
-- `frontend/` — React UI
-- `data/` — ATP tennis dataset used for training and prediction
-- `run.sh` — one-click startup script for the full app
-- `tests/` — regression tests for feature engineering
+Recent-form, surface-form, and head-to-head features are computed using matches from earlier calendar dates only. Since the source data has dates rather than match start times, results from all matches on the same date are held out of one another's features.
 
 ## Tech stack
 
-- Python 3
-- Flask
-- Flask-CORS
-- pandas
-- scikit-learn
-- React
-- Vite
+- Python, pandas, scikit-learn
+- Flask + Flask-CORS
+- React + Vite
+- GitHub Actions for regression tests and frontend builds
+
+## Project structure
+
+- `backend/app.py` — prediction API and request validation
+- `backend/model.py` — reproducible random-forest configuration and lazy training
+- `backend/prepare_data.py` — chronological split and feature engineering
+- `backend/evaluate_model.py` — held-out metrics compared with a ranking-only baseline
+- `backend/model_tuner.py` — optional randomized hyperparameter search with time-series cross-validation
+- `frontend/` — browser interface
+- `data/atp_tennis.csv` — primary dataset
+- `data/sample_atp_tennis.csv` — tiny sample for setup checks, not meaningful model evaluation
+- `tests/` — feature-engineering, API, and metric regression tests
 
 ## Quick start
 
-From the project root:
+Requirements: Python 3, Node.js/npm, and the ATP dataset.
+
+From the repository root:
 
 ```bash
 chmod +x run.sh
 ./run.sh
 ```
 
-Then open:
+The launcher creates a local `.venv`, installs or updates Python dependencies only when `requirements.txt` changes, installs frontend dependencies if needed, and starts both servers. Open http://localhost:5173. The API listens on http://127.0.0.1:5000.
 
-```text
-http://localhost:5173
-```
+The launcher uses the main CSV when available and falls back to the sample CSV otherwise. The sample contains only a few rows; it exists to exercise the app and should not be used to claim model accuracy.
 
-The script will:
+### Manual setup
 
-1. install backend dependencies
-2. start the Flask API
-3. install frontend dependencies if needed
-4. start the React dev server
-
-The repository includes the main dataset at `data/atp_tennis.csv`. If you use a different CSV, point the app at it with `DATA_PATH=/path/to/your.csv`. The startup script also supports an optional `data/sample_atp_tennis.csv` file if you add one locally; that sample file is not currently included in the repository.
-
-## Manual setup
-
-### Backend
+Terminal 1 — backend:
 
 ```bash
-cd backend
-python3 -m pip install flask flask-cors pandas scikit-learn
-python3 app.py
+python3 -m pip install -r requirements.txt
+python3 backend/app.py
 ```
 
-### Frontend
+Terminal 2 — frontend:
 
 ```bash
 cd frontend
-npm install
-npm run dev -- --host 0.0.0.0
+npm ci
+npm run dev
 ```
 
-## API usage
+If your CSV is somewhere else, set `DATA_PATH` before starting the backend:
 
-The backend exposes a POST endpoint at:
-
-```text
-http://127.0.0.1:5000/predict
+```bash
+DATA_PATH=/absolute/path/to/atp_tennis.csv python3 backend/app.py
 ```
 
-Example request:
+If the backend runs at a different address, copy `frontend/.env.example` to `frontend/.env.local` and set `VITE_API_URL` to the backend base URL. Restart Vite after changing environment variables.
+
+## API
+
+`POST /predict` expects JSON with two distinct player names, a supported surface and round, numeric ranks and points, and an optional `match_date` in `YYYY-MM-DD` format. If omitted, the backend uses its local system date. Only matches strictly before the requested date are used as history.
+
+Example:
 
 ```bash
 curl -X POST http://127.0.0.1:5000/predict \
@@ -110,33 +99,50 @@ curl -X POST http://127.0.0.1:5000/predict \
 Example response:
 
 ```json
-{
-  "winner": "Sinner"
-}
+{"winner": "Sinner"}
 ```
 
-## Model notes
+A lightweight readiness endpoint is available at `GET /health`. It confirms the API loaded the dataset; the model is trained on the first prediction request rather than at server startup.
 
-The project uses a chronological train/test split: matches before 2024-01-01 are used for training, and matches on or after that date are held out for testing. Recent-form and head-to-head features are built from earlier dates only; matches on the same date are grouped so their results do not leak into one another's features.
-
-Run the model script to calculate accuracy on the current dataset. Recalculate this metric whenever the data or feature pipeline changes instead of treating a previous score as guaranteed.
-
-## Important limitations
-
-This is a portfolio/demo project, not a production-grade betting system.
-
-- it is trained on historical ATP data only
-- prediction history is limited to matches before the requested `match_date` (defaults to today's date)
-- it does not include live injury, fatigue, weather, or form context outside the dataset
-- the model is a simple feature-based classifier rather than a full sports analytics pipeline
-- predictions should be treated as educational/experimental, not investment advice
-
-## Tests
+## Evaluate model quality
 
 From the repository root, run:
 
 ```bash
-python -m pip install -r requirements.txt
-python -m unittest discover -s tests -v
-python -m py_compile backend/app.py backend/model.py backend/prepare_data.py backend/model_tuner.py
+# If you used ./run.sh:
+.venv/bin/python -m backend.evaluate_model
+
+# Or if you installed requirements into your active Python environment:
+python -m backend.evaluate_model
 ```
+
+The evaluation uses matches before 2024-01-01 for training and matches on or after that date for the held-out test period. It reports accuracy, precision, recall, F1, a confusion matrix, and a classification report. It also reports the same metrics for a simple baseline that predicts Player 1 when Player 1 has the better ranking number.
+
+Interpret the metrics together:
+
+- **Accuracy:** fraction of all held-out matches predicted correctly.
+- **Precision:** among matches predicted as Player 1 wins, how often Player 1 actually won.
+- **Recall:** among actual Player 1 wins, how many the model identified.
+- **F1:** harmonic mean of precision and recall.
+- **Confusion matrix:** counts correct and incorrect predictions for each class.
+
+Do not report a metric without also recording the dataset version/size and test period. Compare against the baseline; a complicated model that does not beat a sensible baseline has not demonstrated added value. Do not tune hyperparameters against the held-out test set. The tuning script uses time-series cross-validation on the training period.
+
+## Tests
+
+From the repository root:
+
+```bash
+# If you used ./run.sh:
+.venv/bin/python -m unittest discover -s tests -v
+
+# Or use the Python environment where requirements.txt is installed:
+python -m unittest discover -s tests -v
+python -m py_compile backend/app.py backend/model.py backend/prepare_data.py backend/model_tuner.py backend/evaluate_model.py
+```
+
+GitHub Actions runs the unit tests, Python compile checks, frontend lint, and Vite production build on pushes and pull requests to `main`.
+
+## Limitations and next steps
+
+This is a portfolio/learning project, not a production-grade betting system. The result is a winner label rather than a calibrated win probability. The model does not currently account for injuries, fatigue, travel, weather, withdrawals, odds, or changes in player ability beyond the included features. Ranking data quality and the date coverage of the CSV matter substantially. A more rigorous next step would be walk-forward evaluation across multiple seasons, probability calibration, and confidence intervals rather than optimizing only one test-period score.
