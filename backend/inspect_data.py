@@ -1,8 +1,18 @@
+"""Print a quick summary of the configured ATP dataset."""
+
+import os
+from pathlib import Path
+
 import pandas as pd
 
-df = pd.read_csv("/Users/henryriordan/vscode/tennis-predictor/data/atp_tennis.csv")
+DEFAULT_DATA = Path(__file__).resolve().parent.parent / "data" / "atp_tennis.csv"
+DATA_PATH = Path(os.environ.get("DATA_PATH", DEFAULT_DATA))
 
-print(df.head())
-print(df.columns)
-print(df.shape)
-print(df.isnull().sum())
+if __name__ == "__main__":
+    df = pd.read_csv(DATA_PATH)
+    print(f"Dataset: {DATA_PATH}")
+    print(df.head())
+    print("Columns:", df.columns.tolist())
+    print("Shape:", df.shape)
+    print("Missing values:")
+    print(df.isna().sum())
