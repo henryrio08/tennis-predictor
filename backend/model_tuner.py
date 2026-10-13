@@ -3,7 +3,10 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit
 
-from prepare_data import prepareData
+try:
+    from .prepare_data import prepareData
+except ImportError:  # Support running this file from the backend directory.
+    from prepare_data import prepareData
 
 
 def tune_model():
