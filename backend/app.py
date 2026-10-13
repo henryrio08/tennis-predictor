@@ -100,9 +100,9 @@ def predict():
 
     surface = data["surface"]
     round_name = data["round"]
-    if surface not in SURFACE_CODES:
+    if not isinstance(surface, str) or surface not in SURFACE_CODES:
         return jsonify({"error": "Invalid surface value."}), 400
-    if round_name not in ROUND_CODES:
+    if not isinstance(round_name, str) or round_name not in ROUND_CODES:
         return jsonify({"error": "Invalid round value."}), 400
 
     try:
@@ -118,11 +118,16 @@ def predict():
     numeric_values = (rank1, rank2, pts1, pts2)
     if not all(pd.notna(value) and abs(value) != float("inf") for value in numeric_values):
         return jsonify({"error": "Rank and points values must be finite numbers."}), 400
-    if any(value <= 0 for value in numeric_values):
-        return jsonify({"error": "Ranks and points must be greater than zero."}), 400
+    if rank1 <= 0 or rank2 <= 0 or pts1 < 0 or pts2 < 0:
+        return jsonify({
+            "error": "Ranks must be greater than zero and points cannot be negative."
+        }), 400
 
+    match_date_value = data.get("match_date", date.today().isoformat())
+    if not isinstance(match_date_value, str):
+        return jsonify({"error": "match_date must be a date string in YYYY-MM-DD format."}), 400
     try:
-        match_date = pd.Timestamp(data.get("match_date", date.today().isoformat()))
+        match_date = pd.to_datetime(match_date_value, format="%Y-%m-%d", errors="raise")
     except (TypeError, ValueError):
         return jsonify({"error": "match_date must be a valid date in YYYY-MM-DD format."}), 400
     if pd.isna(match_date):
