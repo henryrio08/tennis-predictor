@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 
 
@@ -37,7 +39,7 @@ def add_recent_form_features(df):
         p2_surface_10 = rolling_win_rate(p2_surface_history, 10)
 
         pair = tuple(sorted((player_1, player_2)))
-        head_2_head = h2h_counts.setdefault(pair, {"P1": 0, "P2": 0})
+        head_to_head = h2h_counts.setdefault(pair, {})
 
         df.at[idx, "P1_Last_5"] = p1_last_5
         df.at[idx, "P2_Last_5"] = p2_last_5
@@ -53,35 +55,36 @@ def add_recent_form_features(df):
         df.at[idx, "Surface_Form_Diff_5"] = p1_surface_5 - p2_surface_5
         df.at[idx, "Surface_Form_Diff_10"] = p1_surface_10 - p2_surface_10
 
-        df.at[idx, "H2H_P1"] = head_2_head["P1"]
-        df.at[idx, "H2H_P2"] = head_2_head["P2"]
-        df.at[idx, "H2H_Diff"] = head_2_head["P1"] - head_2_head["P2"]
+        # Store wins under each player's identity. Match order can reverse,
+        # so counters named only P1/P2 would mix up the players' records.
+        p1_h2h_wins = head_to_head.get(player_1, 0)
+        p2_h2h_wins = head_to_head.get(player_2, 0)
+        df.at[idx, "H2H_P1"] = p1_h2h_wins
+        df.at[idx, "H2H_P2"] = p2_h2h_wins
+        df.at[idx, "H2H_Diff"] = p1_h2h_wins - p2_h2h_wins
 
         player_1_won = int(row["Winner"] == player_1)
-        player_2_won = 1 - player_1_won
+        player_2_won = int(row["Winner"] == player_2)
 
         p1_history.append(player_1_won)
         p2_history.append(player_2_won)
         p1_surface_history.append(player_1_won)
         p2_surface_history.append(player_2_won)
 
-
-        if player_1_won:
-            head_2_head["P1"] += 1
-        else:
-            head_2_head["P2"] += 1
+        head_to_head[player_1] = p1_h2h_wins + player_1_won
+        head_to_head[player_2] = p2_h2h_wins + player_2_won
 
     return df
 
 
 def prepareData():
-    import os
-
-    default_data = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "atp_tennis.csv"))
+    default_data = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "data", "atp_tennis.csv")
+    )
     data_path = os.environ.get("DATA_PATH", default_data)
     df = pd.read_csv(data_path)
     df["Date"] = pd.to_datetime(df["Date"])
-    df = df.sort_values("Date").reset_index(drop=True)
+    df = df.sort_values("Date", kind="stable").reset_index(drop=True)
 
     df["Player_1_Wins"] = (df["Winner"] == df["Player_1"]).astype(int)
     df["Rank_Diff"] = df["Rank_2"] - df["Rank_1"]
@@ -140,5 +143,11 @@ def prepareData():
 
     print("\nTraining matches:", len(train))
     print("Testing matches:", len(test))
+
+    if train.empty or test.empty:
+        raise ValueError(
+            "The dataset must contain matches both before and on/after 2024-01-01 "
+            "to create the configured chronological train/test split."
+        )
 
     return X_train, X_test, y_train, y_test
