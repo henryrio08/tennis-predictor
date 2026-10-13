@@ -31,6 +31,18 @@ class RecentFormFeatureTests(unittest.TestCase):
         # The first match has no prior history and uses the documented neutral prior.
         self.assertEqual(featured.iloc[0]["P1_Last_5"], 0.5)
 
+    def test_same_day_results_do_not_leak_between_matches(self):
+        same_day = pd.DataFrame(
+            [
+                {"Date": "2024-01-01", "Player_1": "A", "Player_2": "B", "Surface": "Hard", "Winner": "A"},
+                {"Date": "2024-01-01", "Player_1": "A", "Player_2": "C", "Surface": "Hard", "Winner": "A"},
+            ]
+        )
+        featured = add_recent_form_features(same_day)
+
+        self.assertEqual(featured.iloc[0]["P1_Last_5"], 0.5)
+        self.assertEqual(featured.iloc[1]["P1_Last_5"], 0.5)
+
     def test_input_dataframe_is_not_mutated(self):
         original = self.matches.copy(deep=True)
         add_recent_form_features(self.matches)
