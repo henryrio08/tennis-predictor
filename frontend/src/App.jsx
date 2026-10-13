@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
 const players = [
   'Sinner',
   'Alcaraz',
@@ -13,6 +14,12 @@ const players = [
   'Tsitsipas',
 ];
 
+function getLocalDate() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset();
+  return new Date(now.getTime() - offset * 60 * 1000).toISOString().slice(0, 10);
+}
+
 function App() {
   const [form, setForm] = useState({
     player1: 'Sinner',
@@ -23,7 +30,7 @@ function App() {
     rank2: 2,
     pts1: 12000,
     pts2: 9800,
-    match_date: new Date().toISOString().slice(0, 10),
+    match_date: getLocalDate(),
   });
   const [prediction, setPrediction] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -31,27 +38,26 @@ function App() {
 
   function handleChange(event) {
     const { name, value } = event.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm((prev) => ({ ...prev, [name]: value }));
+    setPrediction(null);
+    setError(null);
   }
 
   async function predictWinner() {
     if (form.player1 === form.player2) {
+      setPrediction(null);
       setError('Choose two different players.');
       return;
     }
 
     setLoading(true);
     setError(null);
+    setPrediction(null);
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/predict', {
+      const response = await fetch(API_URL.replace(/\/$/, '') + '/predict', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
           rank1: Number(form.rank1),
@@ -62,14 +68,11 @@ function App() {
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Prediction failed.');
-      }
-
+      if (!response.ok) throw new Error(data.error || 'Prediction failed.');
+      if (typeof data.winner !== 'string') throw new Error('The API returned an unexpected response.');
       setPrediction(data.winner);
     } catch (err) {
-      setError(err.message || 'Something went wrong.');
+      setError(err.message || 'Could not connect to the prediction API. Is the backend running?');
     } finally {
       setLoading(false);
     }
@@ -84,18 +87,14 @@ function App() {
         <label>
           Player 1
           <select name="player1" value={form.player1} onChange={handleChange} style={{ width: '100%', padding: 8 }}>
-            {players.map((player) => (
-              <option key={player} value={player}>{player}</option>
-            ))}
+            {players.map((player) => <option key={player} value={player}>{player}</option>)}
           </select>
         </label>
 
         <label>
           Player 2
           <select name="player2" value={form.player2} onChange={handleChange} style={{ width: '100%', padding: 8 }}>
-            {players.map((player) => (
-              <option key={player} value={player}>{player}</option>
-            ))}
+            {players.map((player) => <option key={player} value={player}>{player}</option>)}
           </select>
         </label>
 
@@ -130,24 +129,22 @@ function App() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <label>
             Rank 1
-            <input type="number" name="rank1" value={form.rank1} onChange={handleChange} style={{ width: '100%', padding: 8 }} />
+            <input type="number" min="1" step="1" name="rank1" value={form.rank1} onChange={handleChange} style={{ width: '100%', padding: 8 }} />
           </label>
-
           <label>
             Rank 2
-            <input type="number" name="rank2" value={form.rank2} onChange={handleChange} style={{ width: '100%', padding: 8 }} />
+            <input type="number" min="1" step="1" name="rank2" value={form.rank2} onChange={handleChange} style={{ width: '100%', padding: 8 }} />
           </label>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <label>
             Points 1
-            <input type="number" name="pts1" value={form.pts1} onChange={handleChange} style={{ width: '100%', padding: 8 }} />
+            <input type="number" min="0" step="1" name="pts1" value={form.pts1} onChange={handleChange} style={{ width: '100%', padding: 8 }} />
           </label>
-
           <label>
             Points 2
-            <input type="number" name="pts2" value={form.pts2} onChange={handleChange} style={{ width: '100%', padding: 8 }} />
+            <input type="number" min="0" step="1" name="pts2" value={form.pts2} onChange={handleChange} style={{ width: '100%', padding: 8 }} />
           </label>
         </div>
 
@@ -155,8 +152,8 @@ function App() {
           {loading ? 'Predicting...' : 'Predict Winner'}
         </button>
 
-        {error && <p style={{ color: 'crimson', margin: 0 }}>{error}</p>}
-        {prediction && <h3>Predicted Winner: {prediction}</h3>}
+        {error && <p role="alert" style={{ color: 'crimson', margin: 0 }}>{error}</p>}
+        {prediction && <h3 role="status">Predicted Winner: {prediction}</h3>}
       </div>
     </div>
   );
