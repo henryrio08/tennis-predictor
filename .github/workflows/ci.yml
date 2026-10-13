@@ -23,6 +23,9 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
+      - name: Run Python unit tests
+        run: python -m unittest discover -s tests -v
+
       - name: Lint / compile Python
         run: |
           python -m py_compile backend/app.py backend/model.py backend/prepare_data.py backend/model_tuner.py
