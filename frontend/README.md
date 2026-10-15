@@ -1,16 +1,30 @@
-# React + Vite
+# Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the React side of the Tennis Predictor. It collects the match details, sends them to the Flask API, and shows the winner returned by the model.
 
-Currently, two official plugins are available:
+## Run it
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+You'll need Node.js and npm. From the repository root:
 
-## React Compiler
+```bash
+cd frontend
+npm ci
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Vite prints a local URL in the terminal, usually `http://localhost:5173`. The backend needs to be running too, or the page won't be able to get a prediction.
 
-## Expanding the ESLint configuration
+The easiest way to start both parts is to go back to the repository root and run `./run.sh`. See the main README for the full setup.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## API address
+
+The frontend uses the backend address configured through `VITE_API_URL`. If you're running the API somewhere other than its default local address, copy `.env.example` to `.env.local`, set `VITE_API_URL` to the backend base URL, and restart Vite.
+
+## Main files
+
+- `src/App.jsx` contains the form and prediction result UI.
+- `src/App.css` styles the app layout.
+- `src/index.css` contains the global styles.
+- `src/main.jsx` starts the React app.
+
+The API and model code live in the `backend/` directory. The [code walkthrough](../docs/CODE_WALKTHROUGH.md) explains how the request moves through the app.
