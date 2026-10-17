@@ -4,6 +4,15 @@ I built this project to see if I could use past ATP match results to predict the
 
 You can choose two players, enter the match details, and get a prediction. The main thing I focused on was making sure the model only uses information that would have been available before the match date. Otherwise, the results can look better than they would in real use.
 
+## Demo
+
+![Tennis Predictor](docs/images/tennis-predictor.png)
+
+Here is a quick run through of making a prediction:
+
+![Tennis prediction demo](docs/images/tennis-demo.gif)
+
+
 ## How a prediction works
 
 ![Tennis prediction flow](docs/images/prediction-flow.svg)

@@ -80,7 +80,7 @@ function App() {
 
   return (
     <div style={{ maxWidth: 520, margin: '40px auto', padding: 24, fontFamily: 'sans-serif' }}>
-      <h1>Tennis Match Predictor</h1>
+      <h1 style={{ fontSize: 36, lineHeight: 1.2, letterSpacing: 0, whiteSpace: 'nowrap', margin: '0 0 24px' }}>Tennis Match Predictor</h1>
       <h2>{form.player1} vs {form.player2}</h2>
 
       <div style={{ display: 'grid', gap: 12 }}>
