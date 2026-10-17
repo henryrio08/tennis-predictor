@@ -12,7 +12,6 @@ Here is a quick run through of making a prediction:
 
 ![Tennis prediction demo](docs/images/tennis-demo.gif)
 
-The screenshots are captured from the app in GitHub Actions.
 
 ## How a prediction works
 
