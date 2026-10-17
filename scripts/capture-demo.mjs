@@ -2,7 +2,7 @@ import { chromium } from "playwright";
 import { mkdir } from "node:fs/promises";
 
 const baseURL = "http://127.0.0.1:5173";
-const output = "docs/images";
+const output = "../docs/images";
 await mkdir(output, { recursive: true });
 
 const browser = await chromium.launch({ headless: true });
